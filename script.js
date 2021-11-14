@@ -24,7 +24,7 @@ var rightwall;
 
 var specials = [];
 
-var fuzzball;
+var series;
 var launcher;
 
 
@@ -92,7 +92,7 @@ function setup() {
 	//enable the matter engine
 	engine = Matter.Engine.create();
 	world = engine.world;
-	body = Matter.Body;
+	body = Matter.Body; 
 
 	//enable the 'matter' mouse controller and attach it to the viewport object using P5s elt property
 	let vp_mouse = Matter.Mouse.create(viewport.elt); //the 'elt' is essentially a pointer the the underlying HTML element
@@ -112,7 +112,7 @@ function setup() {
 	Matter.Events.on(engine, 'collisionEnd', collisions);
  
 	frameRate(60);
-	world.gravity.y = 1.0;
+	world.gravity.y = 1;
 }
 
 function level1(replay = false) {
@@ -121,7 +121,7 @@ function level1(replay = false) {
 		ground.remove();
 		leftwall.remove();
 		rightwall.remove();
-		fuzzball.remove();
+		series.remove();
 		launcher.remove();
 		for(let i = 0; i < MAX_SPECIALS; i++) {
 			specials[i].remove();
@@ -135,7 +135,7 @@ function level1(replay = false) {
 	ground = new c_ground(VP_WIDTH/2, VP_HEIGHT+20, VP_WIDTH, 40, "ground"); //create a ground object using the ground class
 	leftwall = new c_ground(0, VP_HEIGHT/2, 20, VP_HEIGHT, "leftwall"); //create a left wall object using the ground class
 	rightwall = new c_ground(VP_WIDTH, VP_HEIGHT/2, 20, VP_HEIGHT, "rightwall"); //create a right wall object using the ground class
-	fuzzball = new c_fuzzball(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball"); //create a fuzzball object
+	series = new ShotOfSeries(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball",16); //create a fuzzball object
 
 	for(let i = 0; i < MAX_SPECIALS; i++) {
 		specials[i] = new c_special(get_random(300, 640), get_random(VP_HEIGHT-600, VP_HEIGHT-120), 70, 20, "special");
@@ -149,7 +149,7 @@ function level1(replay = false) {
 	}
 
 	//create a launcher object using the fuzzball body
-	launcher = new c_launcher(FUZZBALL_X, FUZZBALL_Y-100, fuzzball.body);
+	launcher = new c_launcher(FUZZBALL_X, FUZZBALL_Y-100, series.body);
 
 }
 
@@ -191,15 +191,15 @@ function paint_assets() {
 	}
 
 	
-	fuzzball.show(); //show the fuzzball
+	series.show(); //show the fuzzball
 	launcher.show(); //show the launcher indicator 
 }
-
+var n =6;
 
 function draw() {
 	//this p5 defined function runs every refresh cycle
 	//special.rotate();
-
+ 
 	paint_background(); //paint the default background
 
 	Matter.Engine.update(engine); //run the matter engine update
@@ -225,9 +225,9 @@ function draw() {
 function keyPressed() {
 	if (keyCode === ENTER) {
 		console.log("enter key press");
-		fuzzball.remove();
-		fuzzball = new c_fuzzball(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball");
-		launcher.attach(fuzzball.body);
+	//	fuzzball.remove();
+	//	fuzzball = new c_fuzzball(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball");
+		launcher.attach(series.body);
 	}
 
 	if(keyCode === 32) {
@@ -241,5 +241,8 @@ function mouseReleased() {
 	setTimeout(() => {
 		launcher.release();
 	}, 60);
+	setTimeout(() => {
+	series.activate();
+	}, series.getActivationTime());
 }
 
