@@ -3,58 +3,39 @@
 class Game {
   constructor(grenade, machineGun, droppingBombs) {
     this.weapons = [grenade, machineGun, droppingBombs];
-    this.luckyNumber = -1;
-    this.launcher = new Launcher(FUZZBALL_X, FUZZBALL_Y - 100, droppingBombs.body);
+    this.luckyNumber = Math.round(Matter.Common.random(0,2));
+
   }
 
 
-  launcherRelease() {
-    console.log(' launcherRelease().....');
-    this.launcher.release();
-  }
+ 
   //the Nth element in an array 0 or 1 or 2
-  setTheNewWeapon() {
-    console.log('setTheNewWeapon()');
-    this.luckyNumber = Math.round(Matter.Common.random());
-    this.weapons[this.luckyNumber].setNewTurn();
-    let newBody=this.weapons[this.luckyNumber].body;
-    this.launcher.attach(newBody);
-  }
+ 
 
   isTheTurnFinished() {
-    if (this.luckyNumber == -1) {
-      return  false;
-    }
+    
 
      console.log('is finished?'+this.weapons[this.luckyNumber].isThatTurnFinished());
     return  this.weapons[this.luckyNumber].isThatTurnFinished();
     
   }
   show() {
-    if (this.luckyNumber == -1) {
-      return;
-    }
+   
     this.weapons[this.luckyNumber].show();
-    this.launcher.show();
+
   }
   getBody() {
-    if (this.luckyNumber == -1) {
-      return;
-    }
+     
     return this.weapons[this.luckyNumber].body;
   }
   getActivationTime() {
-    if (this.luckyNumber == -1) {
-      return 0;
-    }
+  
     console.log('getactivationtime() result:'+this.weapons[this.luckyNumber].getActivationTime()); 
     return this.weapons[this.luckyNumber].getActivationTime();
   }
   activate() {
     
-    if (this.luckyNumber == -1) {
-      return 0;
-    }
+    
     console.log('activate()');
     this.weapons[this.luckyNumber].activate();
   }
@@ -62,12 +43,9 @@ class Game {
     this.weapons[0].remove();
     this.weapons[1].remove();
     this.weapons[2].remove();
-    this.launcher.remove();
   }
   update(deltaTime) {
-    if (this.luckyNumber == -1) {
-      return;
-    }
+   
     this.weapons[this.luckyNumber].update(deltaTime);
   }
   reset() {
@@ -77,46 +55,45 @@ class Game {
 
 class Launcher {
   constructor(x, y, body) {
-    //see docs on https://brm.io/matter-js/docs/classes/Constraint.html#properties
-    let options = {
-      pointA: {
-        x: x,
-        y: y,
-      },
-      bodyB: body,
-      stiffness: 0.18,
-      length: 20
-    }
-    //create the contraint
-    this.launch = Matter.Constraint.create(options);
-    Matter.World.add(world, this.launch); //add to the matter world
-  }
+		//see docs on https://brm.io/matter-js/docs/classes/Constraint.html#properties
+		let options = {
+			pointA: {
+				x: x,
+				y: y
+			},
+			bodyB: body,
+			stiffness: 0.10,
+			length: 20
+		}
+		//create the contraint 
+		this.launch = Matter.Constraint.create(options);
+		Matter.World.add(world, this.launch); //add to the matter world
+	}
 
-  release() {
-    //release the constrained body by setting it to null
-    this.launch.bodyB = null;
-  }
+	release() {
+		//release the constrained body by setting it to null
+		this.launch.bodyB = null;
+	}
 
-  //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
-  remove() {
-    Matter.World.remove(world, this.launch);
-  }
+	//dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
+	remove() {
+		Matter.World.remove(world, this.launch);
+	}
 
-  attach(body) {
-    //attach the specified object as a constrained body
-    this.launch.bodyB = body;
-  }
+	attach(body) {
+		//attach the specified object as a constrained body
+		this.launch.bodyB = body;
+	}	
 
-  show() {
-    //check to see if there is an active body
-    if (this.launch.bodyB) {
-      let posA = this.launch.pointA; //create an shortcut alias
-      let posB = this.launch.bodyB.position;
-      stroke("#00ff00"); //set a colour
-      fill("#DDff");
-      line(posA.x, posA.y, posB.x, posB.y); //draw a line between the two points
-    }
-  }
+	show() {
+		//check to see if there is an active body
+		if(this.launch.bodyB) {
+			let posA = this.launch.pointA; //create an shortcut alias 
+			let posB = this.launch.bodyB.position;
+			stroke("#00ff00"); //set a colour
+			line(posA.x, posA.y, posB.x, posB.y); //draw a line between the two points
+		}
+	}
 }
 
 class Crate {
