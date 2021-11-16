@@ -4,27 +4,31 @@ class Game {
   constructor(grenade, machineGun, droppingBombs) {
     this.weapons = [grenade, machineGun, droppingBombs];
     this.luckyNumber = -1;
-    this.launcher = new Launcher(FUZZBALL_X, FUZZBALL_Y - 100, grenade);
+    this.launcher = new Launcher(FUZZBALL_X, FUZZBALL_Y - 100, droppingBombs.body);
   }
 
-  // setLauncherBodyB(bodyB) {
-  //   this.launcher.attach(bodyB);
-  // }
-  launcherRemove() {
-    this.launcher.remove();
-  }
+
   launcherRelease() {
+    console.log(' launcherRelease().....');
     this.launcher.release();
   }
   //the Nth element in an array 0 or 1 or 2
   setTheNewWeapon() {
+    console.log('setTheNewWeapon()');
     this.luckyNumber = Math.round(Matter.Common.random());
     this.weapons[this.luckyNumber].setNewTurn();
-    this.launcher.attach(this.weapons[i].body);
+    let newBody=this.weapons[this.luckyNumber].body;
+    this.launcher.attach(newBody);
   }
 
   isTheTurnFinished() {
-    return this.weapons[this.luckyNumber].isTheTurnFinished();
+    if (this.luckyNumber == -1) {
+      return  false;
+    }
+
+     console.log('is finished?'+this.weapons[this.luckyNumber].isThatTurnFinished());
+    return  this.weapons[this.luckyNumber].isThatTurnFinished();
+    
   }
   show() {
     if (this.luckyNumber == -1) {
@@ -43,15 +47,22 @@ class Game {
     if (this.luckyNumber == -1) {
       return 0;
     }
+    console.log('getactivationtime() result:'+this.weapons[this.luckyNumber].getActivationTime()); 
     return this.weapons[this.luckyNumber].getActivationTime();
   }
   activate() {
+    
+    if (this.luckyNumber == -1) {
+      return 0;
+    }
+    console.log('activate()');
     this.weapons[this.luckyNumber].activate();
   }
   remove() {
     this.weapons[0].remove();
     this.weapons[1].remove();
     this.weapons[2].remove();
+    this.launcher.remove();
   }
   update(deltaTime) {
     if (this.luckyNumber == -1) {
@@ -73,9 +84,9 @@ class Launcher {
         y: y,
       },
       bodyB: body,
-      stiffness: 0.2,
-      length: 10,
-    };
+      stiffness: 0.18,
+      length: 20
+    }
     //create the contraint
     this.launch = Matter.Constraint.create(options);
     Matter.World.add(world, this.launch); //add to the matter world
@@ -278,7 +289,7 @@ class Weapon {
     this.isTheTurnFinished = false;
   }
 
-  isTheTurnFinished() {
+  isThatTurnFinished() {
     return this.isTurnFinished;
   }
   removeDeadUnitOfAttack() {

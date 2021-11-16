@@ -15,8 +15,8 @@ const BACKGROUND_IMAGE="https://adaresource.s3.eu-west-2.amazonaws.com/assets/fu
 const UNIT_OF_ATTACK_LIFETIME_MAXIMUM = 10000;
 //declare global variables to hold the framework objects
 var viewport, world, engine, body, elastic_constraint;
-var playerScore = 0;
 var backgroundImage;
+var playerScore = 0;
 // define our categories (as bit fields, there are up to 32 available) - we will use them to allow/non allow mouse interaction
 // https://brm.io/matter-js/docs/classes/MouseConstraint.html#properties
 var notinteractable = 0x0001;
@@ -31,29 +31,34 @@ var ground;
 var game;
 var menu= document.getElementById('menu');
 //var machineGun, droppingBombs, grenade, game;
-
  
 
 function start(){ 
-  console.log('start pressed');
+//  console.log('start pressed');
   menu.style = 'display:none;';
   livesLeft=3;
-  setup();
+  game.setTheNewWeapon();
+  
 }
 
 function preload() {
+  console.log('function preload()');
   backgroundImage = loadImage(BACKGROUND_IMAGE);
 }
 
 function gameProgress(){
+  return;
+  //console.log('function gameProgress()');
   if(game.isTheTurnFinished()){
-    lives--;
-    if(lives==0){
+    livesLeft--;
+    if(livesLeft==0){
       score(playerScore,"Game Over");
-      menu.style = 'display:none;'
+      menu.style = 'display:block;'
     }
      
-    game.setTheNewWeapon();
+    
+  }else{
+//game.setTheNewWeapon();
   }
 }
 
@@ -86,6 +91,7 @@ function score(points,gameFinished="") {
 }
 
 function setup() {
+  console.log('function setup()');
   //this p5 defined function runs automatically once the preload function is done
   viewport = createCanvas(VP_WIDTH, VP_HEIGHT); //set the viewport (canvas) size
   viewport.parent("viewport_container"); //attach the created canvas to the target div
@@ -117,13 +123,13 @@ function setup() {
 }
 
 function level1(replay = false) {
+  console.log('function level1()');
   if (replay == true) {
     //if this is a 'reply' we need to remove all the objects before recrating them
     ground.remove();
     //	leftwall.remove();
     //rightwall.remove();
     game.remove();
-    launcher.remove();
     for (let i = 0; i < MAX_SPECIALS; i++) {
       specials[i].remove();
     }
@@ -224,12 +230,14 @@ function collisionActive(event) {
 }
 //deltatime build in p5 system  variable, time from the last run of the timeframe. in miliseconds
 function update(deltaTime) {
+ // console.log('function update()');
   game.update(deltaTime);
+  gameProgress();
 }
 
 function paint_background() {
   //access the game object for the world, use this as a background image for the game
-  background(BACKGROUND_IMAGE);
+  background(backgroundImage);
   ground.show(); //execute the show function for the boundary objects
 }
 
@@ -242,6 +250,7 @@ function paint_assets() {
 }
 
 function draw() {
+ // console.log('function draw()');
   //console.log("deltaTime"+deltaTime);
   //this p5 defined function runs every refresh cycle
   //special.rotate();
@@ -274,13 +283,13 @@ function draw() {
 
 function mouseReleased() {
   console.log("mouseRealesed");
-  if(game==null){
-    return;
-  }
+
   setTimeout(() => {
+  console.log(' setTimeout');
     game.launcherRelease();
   }, 60);
   setTimeout(() => {
+    console.log(' setTimeout');
     game.activate();
   }, game.getActivationTime());
 }
@@ -299,7 +308,7 @@ function keyPressed() {
 	}
 
   if (keyCode === 83) {
-		console.log("Start pressed");
+		//console.log("Start pressed");
     start();
 		// fuzzball.remove();
 		// fuzzball = new c_fuzzball(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball");
