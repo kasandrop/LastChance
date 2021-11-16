@@ -4,35 +4,43 @@ class Game {
   constructor(grenade, machineGun, droppingBombs) {
     this.weapons = [grenade, machineGun, droppingBombs];
     this.luckyNumber = -1;
-     
-    
+    this.launcher = new Launcher(FUZZBALL_X, FUZZBALL_Y - 100, grenade);
+  }
+
+  // setLauncherBodyB(bodyB) {
+  //   this.launcher.attach(bodyB);
+  // }
+  launcherRemove() {
+    this.launcher.remove();
+  }
+  launcherRelease() {
+    this.launcher.release();
   }
   //the Nth element in an array 0 or 1 or 2
   setTheNewWeapon() {
-
-    this.luckyNumber =Math.round( Matter.Common.random());
+    this.luckyNumber = Math.round(Matter.Common.random());
     this.weapons[this.luckyNumber].setNewTurn();
+    this.launcher.attach(this.weapons[i].body);
   }
 
   isTheTurnFinished() {
     return this.weapons[this.luckyNumber].isTheTurnFinished();
- 
   }
   show() {
-    if(this.luckyNumber==-1){
+    if (this.luckyNumber == -1) {
       return;
-  }
+    }
     this.weapons[this.luckyNumber].show();
-  
+    this.launcher.show();
   }
   getBody() {
-    if(this.luckyNumber==-1){
-        return;
+    if (this.luckyNumber == -1) {
+      return;
     }
     return this.weapons[this.luckyNumber].body;
   }
   getActivationTime() {
-    if(this.luckyNumber==-1){
+    if (this.luckyNumber == -1) {
       return 0;
     }
     return this.weapons[this.luckyNumber].getActivationTime();
@@ -44,13 +52,11 @@ class Game {
     this.weapons[0].remove();
     this.weapons[1].remove();
     this.weapons[2].remove();
-    
-
   }
   update(deltaTime) {
-    if(this.luckyNumber==-1){
+    if (this.luckyNumber == -1) {
       return;
-  }
+    }
     this.weapons[this.luckyNumber].update(deltaTime);
   }
   reset() {
@@ -118,7 +124,7 @@ class Crate {
     //create the body
     this.body = Matter.Bodies.rectangle(x, y, width, height, options);
     //setting a property on boddy. Then when collsion is active I can easly change the variable on body
-    Matter.Body.set(this.body,{isAttacked:false});
+    Matter.Body.set(this.body, { isAttacked: false });
     Matter.World.add(world, this.body); //add to the matter world
 
     this.x = x;
@@ -127,18 +133,17 @@ class Crate {
     this.height = height;
     this.alive = true;
     this.element = element;
-   
+
     this.redStroke = "#FF0000";
     this.redFill = "#FFB3B3";
   }
 
   setIsAttacked(isAttacked) {
-    let settings={isAttacked:isAttacked};
-    Matter.Body.set(this.body,settings);
-    
+    let settings = { isAttacked: isAttacked };
+    Matter.Body.set(this.body, settings);
   }
   getIsAttacked() {
-   return  this.body.isAttacked;
+    return this.body.isAttacked;
   }
 
   body() {
@@ -148,7 +153,7 @@ class Crate {
   //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
   remove() {
     Matter.World.remove(world, this.body);
-    this.body=null;
+    this.body = null;
   }
 
   show() {
@@ -160,7 +165,7 @@ class Crate {
     let angle = this.body.angle;
 
     push(); //p5 translation
-    if (this.getIsAttacked() ) {
+    if (this.getIsAttacked()) {
       strokeColor = this.redStroke;
       fillColor = this.redFill;
     } else {
@@ -184,7 +189,7 @@ class Ground {
       isStatic: true,
       restitution: 0.99,
       friction: 0.2,
-      density: 0.90,
+      density: 0.9,
       label: label,
     };
     //create the body
@@ -269,8 +274,8 @@ class Weapon {
     }
   }
 
-  setNewTurn(){
-    this.isTheTurnFinished=false;
+  setNewTurn() {
+    this.isTheTurnFinished = false;
   }
 
   isTheTurnFinished() {
@@ -312,7 +317,7 @@ class Weapon {
   remove() {
     Matter.World.remove(this.world, this.body);
     this.unitsOfAttack.forEach((element) => element.remove());
-    this.body=null;
+    this.body = null;
   }
 
   //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it

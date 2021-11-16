@@ -31,17 +31,13 @@ var ground;
 var game;
 var menu= document.getElementById('menu');
 //var machineGun, droppingBombs, grenade, game;
-var launcher;
+
  
-
-
 
 function start(){ 
   console.log('start pressed');
-  Event.stopPropagation();
-  
-  menu.style = 'display:none;'
-  livesLeft==3;
+  menu.style = 'display:none;';
+  livesLeft=3;
   setup();
 }
 
@@ -186,9 +182,7 @@ function level1(replay = false) {
     );
   }
 
-  if(game.getBody()!=null){
-    launcher = new Launcher(FUZZBALL_X, FUZZBALL_Y - 100, game.getBody());
-  }
+
   //create a launcher object using the fuzzball body
   
 }
@@ -245,7 +239,6 @@ function paint_assets() {
     crates[i].show();
   }
   game.show(); //show the fuzzball
-  launcher.show(); //show the launcher indicator
 }
 
 function draw() {
@@ -285,9 +278,32 @@ function mouseReleased() {
     return;
   }
   setTimeout(() => {
-    launcher.release();
+    game.launcherRelease();
   }, 60);
   setTimeout(() => {
     game.activate();
   }, game.getActivationTime());
+}
+
+function keyPressed() {
+	if (keyCode === ENTER) {
+		// console.log("enter key press");
+		// fuzzball.remove();
+		// fuzzball = new c_fuzzball(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball");
+		// launcher.attach(fuzzball.body);
+	}
+
+	if(keyCode === 32) {
+		console.log("space key press");
+		launcher.release(); //execute the release method
+	}
+
+  if (keyCode === 83) {
+		console.log("Start pressed");
+    start();
+		// fuzzball.remove();
+		// fuzzball = new c_fuzzball(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball");
+		// launcher.attach(fuzzball.body);
+	}
+
 }
