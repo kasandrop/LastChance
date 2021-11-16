@@ -1,12 +1,17 @@
 body {
 	padding: 0px 0px 0px 0px;
 	margin: 0px 0px 0px 0px;
-	background-color: #CFD8DC;
+	background-color: #60696d;
 }
 
 .text_default {
 	font-family: 'Anton', sans-serif;
 	font-size: 3vw;
+	color: #FAFAFA;
+}
+.text_default2 {
+	font-family: 'Anton', sans-serif;
+	font-size: 1vw;
 	color: #FAFAFA;
 }
 
@@ -48,6 +53,34 @@ body {
 
 	display: none;
 }
+
+#menu{
+	float: center;
+	text-align: center;
+	padding-bottom: 5px;
+	padding-top: 5px;
+	flex: 1;
+	font-size: 40px;
+	vertical-align:top;
+	width: 300px;
+	height: 300px;
+	background-color: rgb(126, 52, 133);
+	box-shadow: 0 15px 40px -10px rgba(32, 23, 23, 0.825);
+	position:absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%,-50%)
+  }
+
+  #button{
+	width: 220px;
+	height: 50px;
+	border: none;
+	background:  rgb(126, 52, 133);
+	box-shadow: 0 15px 40px -10px rgba(32, 23, 23, 0.825);
+	font-weight: bold;
+  }
+
 
 #viewport_container {
 	position: relative;

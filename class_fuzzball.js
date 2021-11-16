@@ -2,93 +2,113 @@
 
 class Game {
   constructor(grenade, machineGun, droppingBombs) {
-    (this.weapons = [grenade, machineGun, droppingBombs]),
-      (this.luckyNumber = 1);
+    this.weapons = [grenade, machineGun, droppingBombs];
+    this.luckyNumber = -1;
+     
+    
   }
   //the Nth element in an array 0 or 1 or 2
-  setTheNewWeapon(luckyNumber){
-      this.luckyNumber=luckyNumber;
+  setTheNewWeapon() {
+
+    this.luckyNumber =Math.round( Matter.Common.random());
+    this.weapons[this.luckyNumber].setNewTurn();
   }
 
-  isTheTurnFinished(){
+  isTheTurnFinished() {
     return this.weapons[this.luckyNumber].isTheTurnFinished();
+ 
   }
   show() {
+    if(this.luckyNumber==-1){
+      return;
+  }
     this.weapons[this.luckyNumber].show();
+  
   }
   getBody() {
+    if(this.luckyNumber==-1){
+        return;
+    }
     return this.weapons[this.luckyNumber].body;
   }
   getActivationTime() {
+    if(this.luckyNumber==-1){
+      return 0;
+    }
     return this.weapons[this.luckyNumber].getActivationTime();
   }
   activate() {
     this.weapons[this.luckyNumber].activate();
   }
   remove() {
-    this.weapons[this.luckyNumber].remove();
+    this.weapons[0].remove();
+    this.weapons[1].remove();
+    this.weapons[2].remove();
+    
+
   }
   update(deltaTime) {
+    if(this.luckyNumber==-1){
+      return;
+  }
     this.weapons[this.luckyNumber].update(deltaTime);
   }
-  reset(){
+  reset() {
     //to implement
   }
 }
 
+class Launcher {
+  constructor(x, y, body) {
+    //see docs on https://brm.io/matter-js/docs/classes/Constraint.html#properties
+    let options = {
+      pointA: {
+        x: x,
+        y: y,
+      },
+      bodyB: body,
+      stiffness: 0.2,
+      length: 10,
+    };
+    //create the contraint
+    this.launch = Matter.Constraint.create(options);
+    Matter.World.add(world, this.launch); //add to the matter world
+  }
 
+  release() {
+    //release the constrained body by setting it to null
+    this.launch.bodyB = null;
+  }
 
-class c_launcher {
-	constructor(x, y, body) {
-		//see docs on https://brm.io/matter-js/docs/classes/Constraint.html#properties
-		let options = {
-			pointA: {
-				x: x,
-				y: y
-			},
-			bodyB: body,
-			stiffness: 0.10,
-			length: 20
-		}
-		//create the contraint 
-		this.launch = Matter.Constraint.create(options);
-		Matter.World.add(world, this.launch); //add to the matter world
-	}
+  //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
+  remove() {
+    Matter.World.remove(world, this.launch);
+  }
 
-	release() {
-		//release the constrained body by setting it to null
-		this.launch.bodyB = null;
-	}
+  attach(body) {
+    //attach the specified object as a constrained body
+    this.launch.bodyB = body;
+  }
 
-	//dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
-	remove() {
-		Matter.World.remove(world, this.launch);
-	}
-
-	attach(body) {
-		//attach the specified object as a constrained body
-		this.launch.bodyB = body;
-	}	
-
-	show() {
-		//check to see if there is an active body
-		if(this.launch.bodyB) {
-			let posA = this.launch.pointA; //create an shortcut alias 
-			let posB = this.launch.bodyB.position;
-			stroke("#00ff00"); //set a colour
-			fill("#DDff"); 
-			line(posA.x, posA.y, posB.x, posB.y); //draw a line between the two points
-		}
-	}
+  show() {
+    //check to see if there is an active body
+    if (this.launch.bodyB) {
+      let posA = this.launch.pointA; //create an shortcut alias
+      let posB = this.launch.bodyB.position;
+      stroke("#00ff00"); //set a colour
+      fill("#DDff");
+      line(posA.x, posA.y, posB.x, posB.y); //draw a line between the two points
+    }
+  }
 }
 
 class Crate {
-  constructor(x, y, width, height, label) {
+  constructor(x, y, width, height, label, element) {
     let options = {
       restitution: 0.99,
-      friction: 0.76,
-      density: 0.99,
-      frictionAir: 0.032,
+      friction: 0.93,
+      density: 0.97,
+      frictionAir: 0.02,
       label: label,
       collisionFilter: {
         //used with mouse constraints to allow/not allow iteration
@@ -97,6 +117,8 @@ class Crate {
     };
     //create the body
     this.body = Matter.Bodies.rectangle(x, y, width, height, options);
+    //setting a property on boddy. Then when collsion is active I can easly change the variable on body
+    Matter.Body.set(this.body,{isAttacked:false});
     Matter.World.add(world, this.body); //add to the matter world
 
     this.x = x;
@@ -104,6 +126,19 @@ class Crate {
     this.width = width;
     this.height = height;
     this.alive = true;
+    this.element = element;
+   
+    this.redStroke = "#FF0000";
+    this.redFill = "#FFB3B3";
+  }
+
+  setIsAttacked(isAttacked) {
+    let settings={isAttacked:isAttacked};
+    Matter.Body.set(this.body,settings);
+    
+  }
+  getIsAttacked() {
+   return  this.body.isAttacked;
   }
 
   body() {
@@ -113,17 +148,27 @@ class Crate {
   //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
   remove() {
     Matter.World.remove(world, this.body);
-    this.alive = false;
+    this.body=null;
   }
 
   show() {
+    //console.log("Is attacked?"+this.getIsAttacked());
+    let strokeColor = this.redStroke;
+    let fillColor = this.redFill;
     //	if(this.alive) {
     let pos = this.body.position; //create an shortcut alias
     let angle = this.body.angle;
 
     push(); //p5 translation
-    stroke("#000000");
-    fill("#ffffff");
+    if (this.getIsAttacked() ) {
+      strokeColor = this.redStroke;
+      fillColor = this.redFill;
+    } else {
+      strokeColor = "#3D3D3D";
+      fillColor = "#D3D3D3";
+    }
+    stroke(strokeColor);
+    fill(fillColor);
     rectMode(CENTER); //switch centre to be centre rather than left, top
     translate(pos.x, pos.y);
     rotate(angle);
@@ -139,7 +184,7 @@ class Ground {
       isStatic: true,
       restitution: 0.99,
       friction: 0.2,
-      density: 0.99,
+      density: 0.90,
       label: label,
     };
     //create the body
@@ -159,6 +204,7 @@ class Ground {
   show() {
     let pos = this.body.position; //create an shortcut alias
     rectMode(CENTER); //switch centre to be centre rather than left, top
+
     fill("#ffffff"); //set the fill colour
     rect(pos.x, pos.y, this.width, this.height); //draw the rectangle
   }
@@ -177,8 +223,8 @@ class Weapon {
     let options = {
       restitution: 0.09,
       friction: 0.89,
-      density: 0.99,
-      frictionAir: 0.005,
+      density: 0.89,
+      frictionAir: 0.04,
       label: label,
       collisionFilter: {
         //used with mouse constraints to allow/not allow iteration
@@ -223,6 +269,10 @@ class Weapon {
     }
   }
 
+  setNewTurn(){
+    this.isTheTurnFinished=false;
+  }
+
   isTheTurnFinished() {
     return this.isTurnFinished;
   }
@@ -262,6 +312,7 @@ class Weapon {
   remove() {
     Matter.World.remove(this.world, this.body);
     this.unitsOfAttack.forEach((element) => element.remove());
+    this.body=null;
   }
 
   //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
@@ -305,7 +356,7 @@ class UnitOfAttack {
     this.radius = radius;
     this.world = world;
     //when object is created this is set to 10sec
-    this.liveTime = Matter.Common.random(2,liveTime);
+    this.liveTime = Matter.Common.random(2, liveTime);
     this.isReadyToRemove = false;
     Matter.World.add(this.world, this.body);
   }
@@ -415,8 +466,8 @@ class MachineGun extends Weapon {
       20,
       {
         restitution: 0.09,
-        friction: 0.89,
-        density: 0.99,
+        friction: 0.79,
+        density: 0.89,
         frictionAir: 0.005,
         label: label,
         velocity: velocity,
@@ -470,12 +521,12 @@ class DroppingBombs extends Weapon {
       this.world,
       this.body.position.x,
       this.body.position.y,
-      20,
+      10,
 
       {
         restitution: 0.09,
-        friction: 0.89,
-        density: 0.99,
+        friction: 0.79,
+        density: 0.89,
         frictionAir: 0.005,
         label: label,
         velocity: velocity,
@@ -535,12 +586,12 @@ class Grenade extends Weapon {
       this.world,
       this.body.position.x,
       this.body.position.y,
-      20,
+      10,
 
       {
-        restitution: 0.09,
-        friction: 0.89,
-        density: 0.99,
+        restitution: 0.2,
+        friction: 0.49,
+        density: 0.79,
         frictionAir: 0.005,
         label: label,
         velocity: velocity,

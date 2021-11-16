@@ -10,17 +10,14 @@
 		<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bungee+Shade&display=swap" rel="stylesheet">
 
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA==" crossorigin="anonymous"></script>
-		<script src="https://cdn.jsdelivr.net/npm/p5@0.10.2/lib/addons/p5.sound.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.14.1/matter.min.js" integrity="sha512-zkr6K5aibGz5uIkC28VJQrfg/YDadqtqZPzXiBhUHUSGGqGzmEvK70f+yjV/qCRT21Zsqnc0ABGt5GUakGh16g==" crossorigin="anonymous"></script>
 
 		<!-- https://jquery.com/ is jQuery is a small and fast JavaScript library that provides DOM traversal and manipulation, event handling and basic animation -->
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous"></script>
 
-		<script src="class_crate.js"></script>
+	 
 		<script src="class_fuzzball.js"></script>
-		<script src="class_ground.js"></script>
-		<script src="class_launcher.js"></script>
-		<script src="class_special.js"></script>
+	 
 
 		<link rel="stylesheet" href="style.css">
  
@@ -42,13 +39,37 @@
 				Ada Fuzzball Slam
 			</div>
 		</div>
+		<div id="menu" >
+			<p></p>
+			<button onclick="start();">Start Game</button></br>
+			<button id="restart">Restart</button></br>
+			<button id="closeMenu">Close menu</button></br>
+		 
+		</div>
+
+
+		<div class="text_default2">
+		    
+			  <ul>
+				<li>Press P to pause</li>
+				<li>Click Start to start new game</li>
+				<li>Click Restart to restart current level</li>
+				<li>Drag mouse and release to launch fuzzball</li>
+			  </ul>
+		 
+			 
+			  <ul>    
+				<li>Hit crates to get points</li>
+				<li>Destroy as many crates as possible</li> 
+			  </ul>
+		 
+		</div>
+	 
+
 
 		<script src="script.js"></script>
 		
 
-		<button onclick="apply_velocity();">Apply Velocity Fuzzball</button>
-		<button onclick="apply_angularvelocity();">Apply Angular Crate</button>
-		<button onclick="apply_force();">Apply Force Crate</button>
-		<button onclick="level1(true)">Restart</button>
+		 
 	</body>
 </html>

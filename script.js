@@ -1,16 +1,15 @@
 "use strict";
-
-const VP_WIDTH = 920,
-  VP_HEIGHT = 690; //declare variables to hold the viewport size
+//declare variables to hold the viewport size
+const VP_WIDTH = 920;
+const VP_HEIGHT = 690;
 const MAX_CRATES = 18; //declare a variable to hold the max number of crates
 const MAX_SPECIALS = 1;
-
-const CRATE_WIDTH = 30,
-  CRATE_HEIGHT = 35;
-const FUZZBALL_X = 150,
-  FUZZBALL_Y = 590; //declare a starting point for the fuzzball
-const FUZZBALL_RADIUS = 15; //declare a radius for the fuzzball
-
+const CRATE_WIDTH = 30;
+const CRATE_HEIGHT = 35;
+const FUZZBALL_X = 150;
+const FUZZBALL_Y = 590; //declare a starting point for the fuzzball
+const FUZZBALL_RADIUS = 40; //declare a radius for the fuzzball
+const BACKGROUND_IMAGE="https://adaresource.s3.eu-west-2.amazonaws.com/assets/fuzzballslam/SlamBackground920x690.png";
 //in miliseconds. From activation how long uniOFAttack lasts .
 //TODO if there is time make it random so 10 sec is max. random number
 const UNIT_OF_ATTACK_LIFETIME_MAXIMUM = 10000;
@@ -20,28 +19,56 @@ var playerScore = 0;
 var backgroundImage;
 // define our categories (as bit fields, there are up to 32 available) - we will use them to allow/non allow mouse interaction
 // https://brm.io/matter-js/docs/classes/MouseConstraint.html#properties
-var notinteractable = 0x0001,
-  interactable = 0x0002;
-
+var notinteractable = 0x0001;
+var  interactable = 0x0002;
+var livesLeft;
 var crates = []; //create an empty array that will be used to hold all the crates instances
 var ground;
 //var leftwall;
 //var rightwall;
 
 //var specials = [];
-
-var machineGun, droppingBombs, grenade, game;
+var game;
+var menu= document.getElementById('menu');
+//var machineGun, droppingBombs, grenade, game;
 var launcher;
+ 
 
-var collisionHelper=0;
 
-function preload() {
-  backgroundImage = loadImage(
-    "https://adaresource.s3.eu-west-2.amazonaws.com/assets/fuzzballslam/SlamBackground920x690.png"
-  );
+
+function start(){ 
+  console.log('start pressed');
+  Event.stopPropagation();
+  
+  menu.style = 'display:none;'
+  livesLeft==3;
+  setup();
 }
 
-function score(points) {
+function preload() {
+  backgroundImage = loadImage(BACKGROUND_IMAGE);
+}
+
+function gameProgress(){
+  if(game.isTheTurnFinished()){
+    lives--;
+    if(lives==0){
+      score(playerScore,"Game Over");
+      menu.style = 'display:none;'
+    }
+     
+    game.setTheNewWeapon();
+  }
+}
+
+
+
+
+
+ 
+
+
+function score(points,gameFinished="") {
   let effectspeed = 60;
   let animatespeed = 500;
 
@@ -59,7 +86,7 @@ function score(points) {
   });
 
   playerScore += points;
-  document.getElementById("status").innerHTML = "Score: " + playerScore;
+  document.getElementById("status").innerHTML = "Score: " + playerScore+" "+gameFinished;
 }
 
 function setup() {
@@ -70,7 +97,6 @@ function setup() {
   //enable the matter engine
   engine = Matter.Engine.create();
   world = engine.world;
-  body = Matter.Body;
 
   //enable the 'matter' mouse controller and attach it to the viewport object using P5s elt property
   let vp_mouse = Matter.Mouse.create(viewport.elt); //the 'elt' is essentially a pointer the the underlying HTML element
@@ -87,7 +113,8 @@ function setup() {
   level1();
 
   //attach some useful events to the matter engine; https://brm.io/matter-js/docs/classes/Engine.html#events
-  Matter.Events.on(engine, "collisionEnd", collisions);
+  Matter.Events.on(engine, "collisionEnd", collisionEnds);
+  Matter.Events.on(engine, "collisionActive", collisionActive);
 
   frameRate(60);
   world.gravity.y = 1.0;
@@ -113,7 +140,7 @@ function level1(replay = false) {
   ground = new Ground(VP_WIDTH / 2, VP_HEIGHT + 20, VP_WIDTH, 40, "ground"); //create a ground object using the ground class
   //	leftwall = new c_ground(0, VP_HEIGHT/2, 20, VP_HEIGHT, "leftwall"); //create a left wall object using the ground class
   //	rightwall = new c_ground(VP_WIDTH, VP_HEIGHT/2, 20, VP_HEIGHT, "rightwall"); //create a right wall object using the ground class
-  grenade = new Grenade(
+  var grenade = new Grenade(
     world,
     FUZZBALL_X,
     FUZZBALL_Y,
@@ -122,7 +149,7 @@ function level1(replay = false) {
     15,
     UNIT_OF_ATTACK_LIFETIME_MAXIMUM
   ); //create a fuzzball object
-  droppingBombs = new DroppingBombs(
+  var droppingBombs = new DroppingBombs(
     world,
     FUZZBALL_X,
     FUZZBALL_Y,
@@ -131,7 +158,7 @@ function level1(replay = false) {
     7,
     UNIT_OF_ATTACK_LIFETIME_MAXIMUM
   );
-  machineGun = new MachineGun(
+  var machineGun = new MachineGun(
     world,
     FUZZBALL_X,
     FUZZBALL_Y,
@@ -140,7 +167,7 @@ function level1(replay = false) {
     10,
     UNIT_OF_ATTACK_LIFETIME_MAXIMUM
   );
-  game = new Game(grenade, machineGun, droppingBombs);
+  game=new Game(grenade, machineGun, droppingBombs);
   for (let i = 0; i < MAX_SPECIALS; i++) {
     //specials[i] = new c_special(get_random(300, 640), get_random(VP_HEIGHT-600, VP_HEIGHT-120), 70, 20, "special");
   }
@@ -159,27 +186,44 @@ function level1(replay = false) {
     );
   }
 
+  if(game.getBody()!=null){
+    launcher = new Launcher(FUZZBALL_X, FUZZBALL_Y - 100, game.getBody());
+  }
   //create a launcher object using the fuzzball body
-  launcher = new c_launcher(FUZZBALL_X, FUZZBALL_Y - 100, game.getBody());
+  
 }
 
-function collisions(event) {
-  //runs as part of the matter engine after the engine update, provides access to a list of all pairs that have ended collision in the current frame (if any)
-// if(collisionHelper<1000){
-// 	return;
-// }else{
-// 	collisionHelper=0;
-// }
-  //runs as part of the matter engine after the engine update, provides access to a list of all pairs that have ended collision in the current frame (if any)
-	
+function collisionEnds(event) {
+
   event.pairs.forEach((collide) => {
     //event.pairs[0].bodyA.label
-		console.log("collision");
+    //	console.log("collision:"+collide.bodyB.label+" and "+collide.bodyA.label );
 
     if (
-      (collide.bodyB.label == "unitOfWeapon" && collide.bodyA.label == "crate")
+      collide.bodyB.label == "unitOfWeapon" &&
+      collide.bodyA.label == "crate"
     ) {
       console.log("interesting collision");
+      Matter.Body.set(collide.bodyA, { isAttacked: false });
+
+      score(1);
+    }
+  });
+}
+
+function collisionActive(event) {
+
+  event.pairs.forEach((collide) => {
+    //event.pairs[0].bodyA.label
+    //	console.log("collision:"+collide.bodyB.label+" and "+collide.bodyA.label );
+
+    if (
+      collide.bodyB.label == "unitOfWeapon" &&
+      collide.bodyA.label == "crate"
+    ) {
+      console.log("interesting collision");
+      Matter.Body.set(collide.bodyA, { isAttacked: true });
+
       score(1);
     }
   });
@@ -187,21 +231,12 @@ function collisions(event) {
 //deltatime build in p5 system  variable, time from the last run of the timeframe. in miliseconds
 function update(deltaTime) {
   game.update(deltaTime);
-//	collisionHelper+=deltaTime;
-	//just in case collision event will not work as i assume 10 seconds on purpose
-	// if(collisionHelper>10000000){
-	// 	collisionHelper=0;
-	// }
-	
 }
 
 function paint_background() {
   //access the game object for the world, use this as a background image for the game
-  background(backgroundImage);
-
+  background(BACKGROUND_IMAGE);
   ground.show(); //execute the show function for the boundary objects
-  //leftwall.show();
-  //rightwall.show();
 }
 
 function paint_assets() {
@@ -209,15 +244,9 @@ function paint_assets() {
     //loop through the crates array and show each
     crates[i].show();
   }
-
-  // for(let i = 0; i < MAX_SPECIALS; i++) {
-  // 	specials[i].show(); //show the specials
-  // }
-
   game.show(); //show the fuzzball
   launcher.show(); //show the launcher indicator
 }
-var n = 6;
 
 function draw() {
   //console.log("deltaTime"+deltaTime);
@@ -227,7 +256,12 @@ function draw() {
   paint_background(); //paint the default background
 
   Matter.Engine.update(engine); //run the matter engine update
-  paint_assets(); //paint the assets
+  if(livesLeft>-1){
+
+    paint_assets(); 
+  }
+
+  //paint the assets
 
   if (elastic_constraint.body !== null) {
     let pos = elastic_constraint.body.position; //create an shortcut alias to the position (makes a short statement)
@@ -246,6 +280,10 @@ function draw() {
 }
 
 function mouseReleased() {
+  console.log("mouseRealesed");
+  if(game==null){
+    return;
+  }
   setTimeout(() => {
     launcher.release();
   }, 60);
