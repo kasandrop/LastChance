@@ -3,14 +3,17 @@
 class Game {
   constructor(grenade, machineGun, droppingBombs) {
     this.weapons = [grenade, machineGun, droppingBombs];
-    this.luckyNumber = Math.round(Matter.Common.random(0,2));
+    this.luckyNumber =this.shuffleArray([0,1,2]).shift();
 
   }
+  getLuckyNumber(){
+    return this.luckyNumber;
+  }
+  
 
-
- 
-  //the Nth element in an array 0 or 1 or 2
- 
+  shuffleArray(arr) {
+   return  arr.sort(() => Math.random() - 0.5);
+  }
 
   isTheTurnFinished() {
     
@@ -250,10 +253,11 @@ class Weapon {
   }
 
   update(deltaTime) {
-    this.calculate();
+   
     this.helperLiveTime += deltaTime;
-    //updates every 1 sec 1000 mls inorder to decrease the burden on the system.
+    //updates every 1 sec 1000 mls in order to decrease the burden on the system.
     if (this.helperLiveTime > 1000) {
+       this.calculate();
       this.unitsOfAttack.forEach((element) =>
         element.update(this.helperLiveTime)
       );
@@ -270,6 +274,7 @@ class Weapon {
     return this.isTurnFinished;
   }
   removeDeadUnitOfAttack() {
+    console.log('removeDeadUnitOfAttack:'+this.isTheTurnFinished);
     for (let i = this.unitsOfAttack.length - 1; i >= 0; i--) {
       if (this.unitsOfAttack[i].isUnitOfAttackReadyToRemove() == true) {
         this.unitsOfAttack[i].remove();
@@ -348,7 +353,7 @@ class UnitOfAttack {
     this.y = y;
     this.radius = radius;
     this.world = world;
-    //when object is created this is set to 10sec
+    //when object is created this is set to 10sec. here i randomize time foreach bullet
     this.liveTime = Matter.Common.random(2, liveTime);
     this.isReadyToRemove = false;
     Matter.World.add(this.world, this.body);

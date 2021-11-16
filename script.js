@@ -22,7 +22,7 @@ var playerScore = 0;
 // https://brm.io/matter-js/docs/classes/MouseConstraint.html#properties
 var notinteractable = 0x0001;
 var interactable = 0x0002;
-var livesLeft;
+var livesLeft = 0;
 var crates = []; //create an empty array that will be used to hold all the crates instances
 var ground;
 var launcher;
@@ -35,9 +35,10 @@ var game;
 //var machineGun, droppingBombs, grenade, game;
 
 function start() {
-  //  console.log('start pressed');
-  menu.style = "display:none;";
+  console.log("start pressed");
   livesLeft = 3;
+  // menu.style = "display:none;";
+  level1();
 }
 
 function preload() {
@@ -55,7 +56,7 @@ function preload() {
 //   }
 // }
 
-function score(points, gameFinished = "") {
+function score(points, weapon = -1,gameFinished = "" ) {
   let effectspeed = 60;
   let animatespeed = 500;
 
@@ -74,7 +75,26 @@ function score(points, gameFinished = "") {
 
   playerScore += points;
   document.getElementById("status").innerHTML =
-    "Score: " + playerScore + " " + gameFinished;
+    displayWeapon(weapon) + "Score: " + playerScore + " " + gameFinished;
+}
+
+function displayWeapon(weapon) {
+  let toDisplay = "";
+  switch (weapon) {
+    case 0:
+      toDisplay = "Grenade ";
+      break;
+    case 1:
+      toDisplay = "Machine Gun ";
+      break;
+    case 2:
+      toDisplay = "Flying Bombs";
+      break;
+    default:
+      toDisplay = "";
+  }
+
+  return toDisplay;
 }
 
 function setup() {
@@ -99,7 +119,7 @@ function setup() {
   elastic_constraint = Matter.MouseConstraint.create(engine, options); //see docs on https://brm.io/matter-js/docs/classes/Constraint.html#properties
   Matter.World.add(world, elastic_constraint); //add the elastic constraint object to the world
 
-  level1();
+  //level1();
 
   //attach some useful events to the matter engine; https://brm.io/matter-js/docs/classes/Engine.html#events
   Matter.Events.on(engine, "collisionEnd", collisionEnds);
@@ -107,6 +127,7 @@ function setup() {
 
   frameRate(60);
   world.gravity.y = 1.0;
+  ground = new Ground(VP_WIDTH / 2, VP_HEIGHT + 20, VP_WIDTH, 40, "ground"); //create a ground object using the ground class
 }
 
 function level1(replay = false) {
@@ -126,7 +147,6 @@ function level1(replay = false) {
     }
   }
 
-  ground = new Ground(VP_WIDTH / 2, VP_HEIGHT + 20, VP_WIDTH, 40, "ground"); //create a ground object using the ground class
   //	leftwall = new c_ground(0, VP_HEIGHT/2, 20, VP_HEIGHT, "leftwall"); //create a left wall object using the ground class
   //	rightwall = new c_ground(VP_WIDTH, VP_HEIGHT/2, 20, VP_HEIGHT, "rightwall"); //create a right wall object using the ground class
   var grenade = new Grenade(
@@ -192,7 +212,7 @@ function collisionEnds(event) {
       console.log("interesting collision");
       Matter.Body.set(collide.bodyA, { isAttacked: false });
 
-      score(1);
+      score(1,game.getLuckyNumber());
     }
   });
 }
@@ -209,15 +229,16 @@ function collisionActive(event) {
       console.log("interesting collision");
       Matter.Body.set(collide.bodyA, { isAttacked: true });
 
-      score(1);
+      score(1,game.getLuckyNumber());
     }
   });
 }
 //deltatime build in p5 system  variable, time from the last run of the timeframe. in miliseconds
 function update(deltaTime) {
+  console.log("game.isTheTurnFinished:"+game.isTheTurnFinished());
   // console.log('function update()');
   game.update(deltaTime);
- // gameProgress();
+  // gameProgress();
 }
 
 function paint_background() {
@@ -227,6 +248,7 @@ function paint_background() {
 }
 
 function paint_assets() {
+  update(deltaTime);
   for (let i = 0; i < crates.length; i++) {
     //loop through the crates array and show each
     crates[i].show();
@@ -240,13 +262,14 @@ function draw() {
   //console.log("deltaTime"+deltaTime);
   //this p5 defined function runs every refresh cycle
   //special.rotate();
-  update(deltaTime);
-  paint_background(); //paint the default background
 
+  paint_background(); //paint the default background
   Matter.Engine.update(engine); //run the matter engine update
- // if (livesLeft > -1) {
+  if (game != null) {
     paint_assets();
- // }
+  }
+
+  // }
 
   //paint the assets
 
@@ -260,13 +283,14 @@ function draw() {
     line(pos.x, pos.y, mouse.x, mouse.y);
   }
 
-  //https://brm.io/matter-js/docs/classes/SAT.html#methods
+  //https://brm.io/matter-js/docs/classes/SAT.html#methodssssss
   //if(Matter.SAT.collides(fuzzball.body, ground.body).collided == true) {
   //	console.log("fuzzball to ground");
   //}
 }
 
 function mouseReleased() {
+  if (livesLeft == 0) return;
   console.log("mouseRealesed");
 
   setTimeout(() => {
