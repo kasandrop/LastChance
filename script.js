@@ -297,10 +297,12 @@ function mouseReleased() {
     console.log(" setTimeout");
     launcher.release();
   }, 60);
+
+  //main  condition to spawn unitsOfAttack
   setTimeout(() => {
     console.log(" setTimeout");
     game.activate();
-  }, game.getActivationTime());
+  }, game.getActivationTime()+60);
 }
 
 function keyPressed() {

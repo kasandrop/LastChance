@@ -252,7 +252,15 @@ class Weapon {
 
 // each unitOfAttack is updated with a tick of the system only after activation of the launcher
   update(deltaTime) {
-    if(this.isActivated==false){
+    
+
+    if(this.isUnitsOfAttackCreated==true && this.isTurnFinished == false){
+      this.unitsOfAttack.forEach((element) =>
+      element.update(deltaTime));
+      this.removeExpiredUnitOfAttack();
+    }
+   
+    if(this.isActivated==false ){
         return;
     }
     this.createUnitsOfAttack();
@@ -261,10 +269,8 @@ class Weapon {
     if(this.isUnitsOfAttackCreated==false){
         return;
     }
-    this.unitsOfAttack.forEach((element) =>
-      element.update(deltaTime)
-    );
-    this.removeExpiredUnitOfAttack();
+    
+ 
   }
 
  createUnitsOfAttack(){
@@ -281,10 +287,9 @@ class Weapon {
 
   
   removeExpiredUnitOfAttack() {
-    if(this.isActivated==false){
+    if (this.unitsOfAttack.length<=0){
       return;
-  }
-
+    }
     for (let i = this.unitsOfAttack.length - 1; i >= 0; i--) {
       if (this.unitsOfAttack[i].isUnitOfAttackReadyToRemove() == true) {
         //removing the element from world
@@ -319,7 +324,7 @@ class Weapon {
     return this.body;
   }
   //for removing  from Matter engine
-  removeUnitsOfAttack() {
+  removeUnitsOfAttack() { 
     Matter.World.remove(this.world, this.body);
     this.unitsOfAttack.forEach((element) => element.remove());
     this.body = null;
@@ -364,7 +369,7 @@ class UnitOfAttack {
     this.radius = radius;
     this.world = world;
     //when object is created this is set to 10sec. here i randomize time foreach unitOfAttack
-    this.liveTime = Matter.Common.random(2, liveTime);
+    this.liveTime = Matter.Common.random(4000, liveTime);
     this.isReadyToRemove = false;
     Matter.World.add(this.world, this.body);
   }
@@ -393,11 +398,13 @@ class UnitOfAttack {
 
   //this will be aproximately   once per system tick.
   update(timeFromLastUpadate) {
+    console.log('inside unitxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
     this.liveTime -= timeFromLastUpadate;
     this.checkForExpired();
   }
 
   checkForExpired() {
+    console.log('livetime:'+this.liveTime);
     if (this.liveTime <= 0) {
       this.isReadyToRemove = true;
     }
@@ -437,7 +444,7 @@ class UnitOfAttack {
   }
 }
 
-class MachineGun extends Weapon {
+class  DroppingBombs extends Weapon {
   constructor(
     world,
     x,
@@ -454,16 +461,16 @@ class MachineGun extends Weapon {
   }
 
   getActivationTime() {
-    return 550;
+    return 30;
   }
   remove() {
     super.rename();
   }
   createUnitsOfAttack() {
-    super.createUnitsOfAttack()
     if (this.body.velocity.y < 0) {
       return;
     }
+    super.createUnitsOfAttack()
     let velocityX = 0;
     let velocityY = this.body.velocity.y * 30;
     let velocity = { x: velocityX, y: velocityY };
@@ -489,8 +496,9 @@ class MachineGun extends Weapon {
     );
     if (this.body.velocity.y > 0) {
       this.unitsOfAttack.push(newUnit);
-      if (this.unitsOfAttack.length == this.amountOfBalls) {
+      if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
         this.isUnitsOfAttackCreated=true;
+        this.isActivated=false;
 
        
       }
@@ -499,7 +507,7 @@ class MachineGun extends Weapon {
   }
 }
 
-class DroppingBombs extends Weapon {
+class MachineGun extends Weapon {
   constructor(
     world,
     x,
@@ -510,7 +518,6 @@ class DroppingBombs extends Weapon {
     liveTimeOfUnitOfAttack
   ) {
     super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
-    this.activationTimeForTimer = 0;
   }
   show() {
     super.show();
@@ -519,6 +526,9 @@ class DroppingBombs extends Weapon {
     super.rename();
   }
 
+  getActivationTime() {
+    return 0;
+  }
   createUnitsOfAttack() {
     super.createUnitsOfAttack()
     //velocity is taken from the body of the weapon  player can see at the begining.
@@ -550,9 +560,9 @@ class DroppingBombs extends Weapon {
     );
     newUnit.applyVelocity();
     this.unitsOfAttack.push(newUnit);
-    if (this.unitsOfAttack.length == this.amountOfBalls) {
-      this.removeBody();
-
+    if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
+    
+      this.isUnitsOfAttackCreated=true;
       this.isActivated = false;
     }
      
@@ -570,7 +580,7 @@ class Grenade extends Weapon {
     liveTimeOfUnitOfAttack
   ) {
     super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
-    this.activationTimeForTimer = 4500;
+   
   }
   show() {
     super.show();
@@ -585,7 +595,9 @@ class Grenade extends Weapon {
   // }
 
   //this is in miliseconds
-
+  getActivationTime() {
+    return 550;
+  }
   createUnitsOfAttack() {
     super.createUnitsOfAttack()
     //velocity is taken from the body of the weapon  player can see at the begining.
@@ -616,9 +628,10 @@ class Grenade extends Weapon {
       this.liveTimeOfUnitOfAttack
     );
     this.unitsOfAttack.push(newUnit);
-    if (this.unitsOfAttack.length == this.amountOfBalls) {
-      this.removeBody();
+    if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
+      
 
+      this.isUnitsOfAttackCreated=true;
       this.isActivated = false;
     }
     
