@@ -236,7 +236,7 @@ function collisionActive(event) {
 //deltatime build in p5 system  variable, time from the last run of the timeframe. in miliseconds
 function update(deltaTime) {
   console.log("game.isTheTurnFinished:"+game.isTheTurnFinished());
-  // console.log('function update()');
+  console.log("random"+game. getRandomInt(0, 3));
   game.update(deltaTime);
   // gameProgress();
 }

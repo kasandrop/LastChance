@@ -3,43 +3,36 @@
 class Game {
   constructor(grenade, machineGun, droppingBombs) {
     this.weapons = [grenade, machineGun, droppingBombs];
-    this.luckyNumber =this.shuffleArray([0,1,2]).shift();
-
+    this.luckyNumber = this.getRandomInt(0, this.weapons.length - 1);
   }
-  getLuckyNumber(){
+  getLuckyNumber() {
     return this.luckyNumber;
   }
-  
 
-  shuffleArray(arr) {
-   return  arr.sort(() => Math.random() - 0.5);
+  // random integer number between min and max including
+  getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   isTheTurnFinished() {
-    
-
-     console.log('is finished?'+this.weapons[this.luckyNumber].isThatTurnFinished());
-    return  this.weapons[this.luckyNumber].isThatTurnFinished();
-    
+    // console.log('is finished?'+this.weapons[this.luckyNumber].isThatTurnFinished());
+    return this.weapons[this.luckyNumber].isThatTurnFinished();
   }
   show() {
-   
     this.weapons[this.luckyNumber].show();
-
   }
   getBody() {
-     
     return this.weapons[this.luckyNumber].body;
   }
   getActivationTime() {
-  
-    console.log('getactivationtime() result:'+this.weapons[this.luckyNumber].getActivationTime()); 
+    console.log(
+      "getactivationtime() result:" +
+        this.weapons[this.luckyNumber].getActivationTime()
+    );
     return this.weapons[this.luckyNumber].getActivationTime();
   }
   activate() {
-    
-    
-    console.log('activate()');
+    console.log("activate()");
     this.weapons[this.luckyNumber].activate();
   }
   remove() {
@@ -48,7 +41,6 @@ class Game {
     this.weapons[2].remove();
   }
   update(deltaTime) {
-   
     this.weapons[this.luckyNumber].update(deltaTime);
   }
   reset() {
@@ -58,45 +50,45 @@ class Game {
 
 class Launcher {
   constructor(x, y, body) {
-		//see docs on https://brm.io/matter-js/docs/classes/Constraint.html#properties
-		let options = {
-			pointA: {
-				x: x,
-				y: y
-			},
-			bodyB: body,
-			stiffness: 0.10,
-			length: 20
-		}
-		//create the contraint 
-		this.launch = Matter.Constraint.create(options);
-		Matter.World.add(world, this.launch); //add to the matter world
-	}
+    //see docs on https://brm.io/matter-js/docs/classes/Constraint.html#properties
+    let options = {
+      pointA: {
+        x: x,
+        y: y,
+      },
+      bodyB: body,
+      stiffness: 0.1,
+      length: 20,
+    };
+    //create the contraint
+    this.launch = Matter.Constraint.create(options);
+    Matter.World.add(world, this.launch); //add to the matter world
+  }
 
-	release() {
-		//release the constrained body by setting it to null
-		this.launch.bodyB = null;
-	}
+  release() {
+    //release the constrained body by setting it to null
+    this.launch.bodyB = null;
+  }
 
-	//dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
-	remove() {
-		Matter.World.remove(world, this.launch);
-	}
+  //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
+  remove() {
+    Matter.World.remove(world, this.launch);
+  }
 
-	attach(body) {
-		//attach the specified object as a constrained body
-		this.launch.bodyB = body;
-	}	
+  attach(body) {
+    //attach the specified object as a constrained body
+    this.launch.bodyB = body;
+  }
 
-	show() {
-		//check to see if there is an active body
-		if(this.launch.bodyB) {
-			let posA = this.launch.pointA; //create an shortcut alias 
-			let posB = this.launch.bodyB.position;
-			stroke("#00ff00"); //set a colour
-			line(posA.x, posA.y, posB.x, posB.y); //draw a line between the two points
-		}
-	}
+  show() {
+    //check to see if there is an active body
+    if (this.launch.bodyB) {
+      let posA = this.launch.pointA; //create an shortcut alias
+      let posB = this.launch.bodyB.position;
+      stroke("#00ff00"); //set a colour
+      line(posA.x, posA.y, posB.x, posB.y); //draw a line between the two points
+    }
+  }
 }
 
 class Crate {
@@ -206,6 +198,20 @@ class Ground {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 class Weapon {
   constructor(
     world,
@@ -227,8 +233,7 @@ class Weapon {
         category: interactable,
       },
     };
-    this.amountOfBalls = amountOfBalls;
-    this.isActivated = false;
+    this.amountOfUnitsOfAttack = amountOfBalls;
     this.body = Matter.Bodies.circle(x, y, radius, options); //matter.js used radius rather than diameter
     Matter.World.add(world, this.body);
     this.x = x;
@@ -236,47 +241,53 @@ class Weapon {
     this.radius = radius;
     this.unitsOfAttack = [];
     this.world = world;
-    this.activationTimeForTimer = 0;
+    //each unit of attack has up to  this.liveTimeOfUnitOfAttack  miliseconds of time  to cause damage
     this.liveTimeOfUnitOfAttack = liveTimeOfUnitOfAttack;
-    this.helperLiveTime = 0;
     this.isTurnFinished = false;
+    //if launcher starts we start timer to to count 60 mls to activate creation of unitsOfAtack
+    this.isActivated=false;
+    //flag to create unitsOfAttack only once
+    this.isUnitsOfAttackCreated=false;
   }
 
-  calculate() {
-    if (
-      this.isActivated &&
-      this.unitsOfAttack.length <= this.amountOfBalls &&
-      this.body != null
-    ) {
-      this.behaviourOfWeapon();
-    }
-  }
-
+// each unitOfAttack is updated with a tick of the system only after activation of the launcher
   update(deltaTime) {
-   
-    this.helperLiveTime += deltaTime;
-    //updates every 1 sec 1000 mls in order to decrease the burden on the system.
-    if (this.helperLiveTime > 1000) {
-       this.calculate();
-      this.unitsOfAttack.forEach((element) =>
-        element.update(this.helperLiveTime)
-      );
-      this.helperLiveTime = 0;
-      this.removeDeadUnitOfAttack();
+    if(this.isActivated==false){
+        return;
     }
+    this.createUnitsOfAttack();
+
+    //to update unitsOfAttack they must be created first
+    if(this.isUnitsOfAttackCreated==false){
+        return;
+    }
+    this.unitsOfAttack.forEach((element) =>
+      element.update(deltaTime)
+    );
+    this.removeExpiredUnitOfAttack();
   }
 
-  setNewTurn() {
-    this.isTheTurnFinished = false;
-  }
+ createUnitsOfAttack(){
+  if(this.isActivated==false){
+    return;
+}
+   console.log('abstract method');
+ }
 
   isThatTurnFinished() {
     return this.isTurnFinished;
   }
-  removeDeadUnitOfAttack() {
-    console.log('removeDeadUnitOfAttack:'+this.isTheTurnFinished);
+
+
+  
+  removeExpiredUnitOfAttack() {
+    if(this.isActivated==false){
+      return;
+  }
+
     for (let i = this.unitsOfAttack.length - 1; i >= 0; i--) {
       if (this.unitsOfAttack[i].isUnitOfAttackReadyToRemove() == true) {
+        //removing the element from world
         this.unitsOfAttack[i].remove();
         //removing the element from array as well
         this.unitsOfAttack.splice(i, 1);
@@ -307,7 +318,8 @@ class Weapon {
   body() {
     return this.body;
   }
-  remove() {
+  //for removing  from Matter engine
+  removeUnitsOfAttack() {
     Matter.World.remove(this.world, this.body);
     this.unitsOfAttack.forEach((element) => element.remove());
     this.body = null;
@@ -320,9 +332,6 @@ class Weapon {
   }
   //in milisceonds
 
-  getActivationTime() {
-    return this.activationTimeForTimer;
-  }
   show() {
     this.unitsOfAttack.forEach((element) => element.show());
 
@@ -340,11 +349,12 @@ class Weapon {
     fill("#00aa00");
     ellipseMode(CENTER); //switch centre to be centre rather than left, top
     circle(0, 0, this.radius);
-
     pop();
   }
 }
 
+//once we launch and the ball activates we create unitsOfAttack 
+//they cause damage for certain time only
 class UnitOfAttack {
   constructor(world, x, y, radius, options, liveTime) {
     this.body = Matter.Bodies.circle(x, y, radius, options); //matter.js used radius rather than diameter
@@ -353,7 +363,7 @@ class UnitOfAttack {
     this.y = y;
     this.radius = radius;
     this.world = world;
-    //when object is created this is set to 10sec. here i randomize time foreach bullet
+    //when object is created this is set to 10sec. here i randomize time foreach unitOfAttack
     this.liveTime = Matter.Common.random(2, liveTime);
     this.isReadyToRemove = false;
     Matter.World.add(this.world, this.body);
@@ -381,13 +391,13 @@ class UnitOfAttack {
     );
   }
 
-  //this will be aproximately   once per 1sec.
+  //this will be aproximately   once per system tick.
   update(timeFromLastUpadate) {
     this.liveTime -= timeFromLastUpadate;
-    this.checkForDead();
+    this.checkForExpired();
   }
 
-  checkForDead() {
+  checkForExpired() {
     if (this.liveTime <= 0) {
       this.isReadyToRemove = true;
     }
@@ -449,7 +459,8 @@ class MachineGun extends Weapon {
   remove() {
     super.rename();
   }
-  behaviourOfWeapon() {
+  createUnitsOfAttack() {
+    super.createUnitsOfAttack()
     if (this.body.velocity.y < 0) {
       return;
     }
@@ -479,11 +490,12 @@ class MachineGun extends Weapon {
     if (this.body.velocity.y > 0) {
       this.unitsOfAttack.push(newUnit);
       if (this.unitsOfAttack.length == this.amountOfBalls) {
-        this.removeBody();
+        this.isUnitsOfAttackCreated=true;
 
-        this.isActivated = false;
+       
       }
     }
+     
   }
 }
 
@@ -507,7 +519,8 @@ class DroppingBombs extends Weapon {
     super.rename();
   }
 
-  behaviourOfWeapon() {
+  createUnitsOfAttack() {
+    super.createUnitsOfAttack()
     //velocity is taken from the body of the weapon  player can see at the begining.
     // once the weapon is shot its velocity is copied to   unitsOfWeapon
     let velocityX = this.body.velocity.x;
@@ -542,6 +555,7 @@ class DroppingBombs extends Weapon {
 
       this.isActivated = false;
     }
+     
   }
 }
 
@@ -572,7 +586,8 @@ class Grenade extends Weapon {
 
   //this is in miliseconds
 
-  behaviourOfWeapon() {
+  createUnitsOfAttack() {
+    super.createUnitsOfAttack()
     //velocity is taken from the body of the weapon  player can see at the begining.
     // once the weapon is shot its velocity is copied to   unitsOfWeapon
     let velocityX = this.body.velocity.x;
@@ -606,5 +621,6 @@ class Grenade extends Weapon {
 
       this.isActivated = false;
     }
+    
   }
 }
