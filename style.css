@@ -54,7 +54,17 @@ body {
 	display: none;
 }
 
- 
+.menutopleft{
+   position:absolute;
+	left: 20%;
+	top: 1%;
+  }
+
+  .menutopRight{
+	position:absolute;
+	 left: 70%;
+	 top: 1%;
+   }
 
   #button{
 	width: 220px;

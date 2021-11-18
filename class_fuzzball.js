@@ -25,14 +25,9 @@ class Game {
     return this.weapons[this.luckyNumber].body;
   }
   getActivationTime() {
-    console.log(
-      "getactivationtime() result:" +
-        this.weapons[this.luckyNumber].getActivationTime()
-    );
     return this.weapons[this.luckyNumber].getActivationTime();
   }
   activate() {
-    console.log("activate()");
     this.weapons[this.luckyNumber].activate();
   }
   remove() {
@@ -68,6 +63,7 @@ class Launcher {
   release() {
     //release the constrained body by setting it to null
     this.launch.bodyB = null;
+    this.remove();
   }
 
   //dont forget bodies are added to the matter world meaning even if not visible the physics engine still manages it
@@ -81,6 +77,9 @@ class Launcher {
   }
 
   show() {
+    if (this.launch == null) {
+      return;
+    }
     //check to see if there is an active body
     if (this.launch.bodyB) {
       let posA = this.launch.pointA; //create an shortcut alias
@@ -91,13 +90,77 @@ class Launcher {
   }
 }
 
+class Crates {
+  constructor(n) {
+    this.x = Matter.Common.random(VP_WIDTH / 2, VP_WIDTH / 2 + 250);
+    this.y = Matter.Common.random(VP_HEIGHT / 2, VP_HEIGHT);
+    this.shelf = new Ground(this.x, this.y, SHELF_WIDTH, 20, "shelf");
+    this.barrier = new Ground(
+      this.x + SHELF_WIDTH / 2,
+      this.y - (SHELF_WIDTH * 0.47) / 2 + 16,
+      33,
+      SHELF_WIDTH * 0.47,
+      "shelf"
+    );
+    this.crates = [];
+    this.createCrates();
+  }
+
+  setStatic() {
+    for (let i = 0; i < MAX_CRATES; i++) {
+      this.crates[i].applyVelocityZero();
+    }
+  }
+
+  createCrates() {
+    let row = 0;
+    let column = 1;
+    for (let i = 0; i < MAX_CRATES; i++) {
+      if (column % 5 == 0) {
+        column = 1;
+      }
+      if (i % 5 == 0) {
+        row++;
+      }
+      
+      //loop for each instance of a crates
+      let top =  this.y-column*CRATE_HEIGHT;
+      let offset = this.x + row * CRATE_WIDTH+row+column-CRATE_WIDTH/2;
+      this.crates[i] = new Crate(
+        offset,
+        top,
+        CRATE_WIDTH,
+        CRATE_HEIGHT,
+        "crate"
+      );
+      column++;
+    }
+  }
+  remove() {
+    this.shelf.remove();
+    this.barrier.remove();
+    for (let i = 0; i < MAX_CRATES; i++) {
+      this.crates[i].remove();
+    }
+  }
+  
+  show() {
+    this.shelf.show();
+    this.barrier.show();
+    for (let i = 0; i < MAX_CRATES; i++) {
+      this.crates[i].show();
+    }
+  
+  }
+}
+
 class Crate {
-  constructor(x, y, width, height, label, element) {
+  constructor(x, y, width, height, label) {
     let options = {
-      restitution: 0.99,
-      friction: 0.93,
-      density: 0.97,
-      frictionAir: 0.02,
+      restitution: 0.19,
+      friction: 0.99,
+      density: 0.99,
+      frictionAir: 0.07,
       label: label,
       collisionFilter: {
         //used with mouse constraints to allow/not allow iteration
@@ -109,16 +172,18 @@ class Crate {
     //setting a property on boddy. Then when collsion is active I can easly change the variable on body
     Matter.Body.set(this.body, { isAttacked: false });
     Matter.World.add(world, this.body); //add to the matter world
-
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
     this.alive = true;
-    this.element = element;
 
     this.redStroke = "#FF0000";
     this.redFill = "#FFB3B3";
+  }
+
+  applyVelocityZero() {
+    Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
   }
 
   setIsAttacked(isAttacked) {
@@ -140,6 +205,9 @@ class Crate {
   }
 
   show() {
+    if (this.body == null) {
+      return;
+    }
     //console.log("Is attacked?"+this.getIsAttacked());
     let strokeColor = this.redStroke;
     let fillColor = this.redFill;
@@ -147,7 +215,7 @@ class Crate {
     let pos = this.body.position; //create an shortcut alias
     let angle = this.body.angle;
 
-    push(); //p5 translation
+    //p5 translation
     if (this.getIsAttacked()) {
       strokeColor = this.redStroke;
       fillColor = this.redFill;
@@ -158,6 +226,7 @@ class Crate {
     stroke(strokeColor);
     fill(fillColor);
     rectMode(CENTER); //switch centre to be centre rather than left, top
+    push();
     translate(pos.x, pos.y);
     rotate(angle);
     rect(0, 0, this.width, this.height);
@@ -188,6 +257,10 @@ class Ground {
   body() {
     return this.body; //return the created body
   }
+  remove() {
+    Matter.World.remove(world, this.body);
+    this.body = null;
+  }
 
   show() {
     let pos = this.body.position; //create an shortcut alias
@@ -199,19 +272,6 @@ class Ground {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 class Weapon {
   constructor(
     world,
@@ -245,49 +305,42 @@ class Weapon {
     this.liveTimeOfUnitOfAttack = liveTimeOfUnitOfAttack;
     this.isTurnFinished = false;
     //if launcher starts we start timer to to count 60 mls to activate creation of unitsOfAtack
-    this.isActivated=false;
+    this.isActivated = false;
     //flag to create unitsOfAttack only once
-    this.isUnitsOfAttackCreated=false;
+    this.isUnitsOfAttackCreated = false;
   }
 
-// each unitOfAttack is updated with a tick of the system only after activation of the launcher
+  // each unitOfAttack is updated with a tick of the system only after activation of the launcher
   update(deltaTime) {
-    
-
-    if(this.isUnitsOfAttackCreated==true && this.isTurnFinished == false){
-      this.unitsOfAttack.forEach((element) =>
-      element.update(deltaTime));
+    if (this.isUnitsOfAttackCreated == true && this.isTurnFinished == false) {
+      this.unitsOfAttack.forEach((element) => element.update(deltaTime));
       this.removeExpiredUnitOfAttack();
     }
-   
-    if(this.isActivated==false ){
-        return;
+
+    if (this.isActivated == false) {
+      return;
     }
     this.createUnitsOfAttack();
 
     //to update unitsOfAttack they must be created first
-    if(this.isUnitsOfAttackCreated==false){
-        return;
+    if (this.isUnitsOfAttackCreated == false) {
+      return;
     }
-    
- 
   }
 
- createUnitsOfAttack(){
-  if(this.isActivated==false){
-    return;
-}
-   console.log('abstract method');
- }
+  createUnitsOfAttack() {
+    if (this.isActivated == false) {
+      return;
+    }
+    console.log("abstract method");
+  }
 
   isThatTurnFinished() {
     return this.isTurnFinished;
   }
 
-
-  
   removeExpiredUnitOfAttack() {
-    if (this.unitsOfAttack.length<=0){
+    if (this.unitsOfAttack.length <= 0) {
       return;
     }
     for (let i = this.unitsOfAttack.length - 1; i >= 0; i--) {
@@ -324,7 +377,7 @@ class Weapon {
     return this.body;
   }
   //for removing  from Matter engine
-  removeUnitsOfAttack() { 
+  removeUnitsOfAttack() {
     Matter.World.remove(this.world, this.body);
     this.unitsOfAttack.forEach((element) => element.remove());
     this.body = null;
@@ -358,8 +411,194 @@ class Weapon {
   }
 }
 
-//once we launch and the ball activates we create unitsOfAttack 
+//once we launch and the ball activates we create unitsOfAttack
 //they cause damage for certain time only
+
+class DroppingBombs extends Weapon {
+  constructor(
+    world,
+    x,
+    y,
+    radius,
+    label,
+    amountOfBalls,
+    liveTimeOfUnitOfAttack
+  ) {
+    super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
+  }
+  show() {
+    super.show();
+  }
+
+  getActivationTime() {
+    return 30;
+  }
+  remove() {
+    super.removebody();
+  }
+  createUnitsOfAttack() {
+    // the unitsOfAttack are started to be spawn once the launching ball starts to deent
+    if (this.body.velocity.y < 0) {
+      return;
+    }
+    super.createUnitsOfAttack();
+    let velocityX = 0;
+    let velocityY = this.body.velocity.y * 30;
+    let velocity = { x: velocityX, y: velocityY };
+    let label = "unitOfWeapon";
+    let newUnit = new UnitOfAttack(
+      this.world,
+      this.body.position.x,
+      this.body.position.y,
+      20,
+      {
+        restitution: 0.09,
+        friction: 0.79,
+        density: 0.89,
+        frictionAir: 0.005,
+        label: label,
+        velocity: velocity,
+        collisionFilter: {
+          //used with mouse constraints to allow/not allow iteration
+          category: notinteractable,
+        },
+      },
+      this.liveTimeOfUnitOfAttack
+    );
+    if (this.body.velocity.y > 0) {
+      this.unitsOfAttack.push(newUnit);
+      if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
+        this.isUnitsOfAttackCreated = true;
+        this.isActivated = false;
+      }
+    }
+  }
+}
+
+class MachineGun extends Weapon {
+  constructor(
+    world,
+    x,
+    y,
+    radius,
+    label,
+    amountOfBalls,
+    liveTimeOfUnitOfAttack
+  ) {
+    super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
+  }
+  show() {
+    super.show();
+  }
+  remove() {
+    super.removebody();
+  }
+
+  getActivationTime() {
+    return 0;
+  }
+  createUnitsOfAttack() {
+    super.createUnitsOfAttack();
+    //velocity is taken from the body of the weapon  player can see at the begining.
+    // once the weapon is shot its velocity is copied to   unitsOfWeapon
+    let velocityX = this.body.velocity.x;
+    let velocityY = this.body.velocity.y;
+    let velocity = { x: velocityX, y: velocityY };
+    let label = "unitOfWeapon";
+
+    let newUnit = new UnitOfAttack(
+      this.world,
+      this.body.position.x,
+      this.body.position.y,
+      10,
+
+      {
+        restitution: 0.09,
+        friction: 0.79,
+        density: 0.89,
+        frictionAir: 0.005,
+        label: label,
+        velocity: velocity,
+        collisionFilter: {
+          //used with mouse constraints to allow/not allow iteration
+          category: notinteractable,
+        },
+      },
+      this.liveTimeOfUnitOfAttack
+    );
+    newUnit.applyVelocity();
+    this.unitsOfAttack.push(newUnit);
+    if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
+      this.isUnitsOfAttackCreated = true;
+      this.isActivated = false;
+    }
+  }
+}
+
+class Grenade extends Weapon {
+  constructor(
+    world,
+    x,
+    y,
+    radius,
+    label,
+    amountOfBalls,
+    liveTimeOfUnitOfAttack
+  ) {
+    super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
+  }
+  show() {
+    super.show();
+  }
+  remove() {
+    super.removebody();
+  }
+
+  // applyForce(){
+  //   this.unitsOfAttack.forEach((element)=>element.applyForce());
+
+  // }
+
+  //this is in miliseconds
+  getActivationTime() {
+    return 550;
+  }
+  createUnitsOfAttack() {
+    super.createUnitsOfAttack();
+    //velocity is taken from the body of the weapon  player can see at the begining.
+    // once the weapon is shot its velocity is copied to   unitsOfWeapon
+    let velocityX = this.body.velocity.x;
+    let velocityY = this.body.velocity.y;
+    let velocity = { x: velocityX, y: velocityY };
+    let label = "unitOfWeapon";
+
+    let newUnit = new UnitOfAttack(
+      this.world,
+      this.body.position.x,
+      this.body.position.y,
+      10,
+
+      {
+        restitution: 0.2,
+        friction: 0.49,
+        density: 0.79,
+        frictionAir: 0.005,
+        label: label,
+        velocity: velocity,
+        collisionFilter: {
+          //used with mouse constraints to allow/not allow iteration
+          category: notinteractable,
+        },
+      },
+      this.liveTimeOfUnitOfAttack
+    );
+    this.unitsOfAttack.push(newUnit);
+    if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
+      this.isUnitsOfAttackCreated = true;
+      this.isActivated = false;
+    }
+  }
+}
 class UnitOfAttack {
   constructor(world, x, y, radius, options, liveTime) {
     this.body = Matter.Bodies.circle(x, y, radius, options); //matter.js used radius rather than diameter
@@ -398,13 +637,13 @@ class UnitOfAttack {
 
   //this will be aproximately   once per system tick.
   update(timeFromLastUpadate) {
-    console.log('inside unitxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+    console.log("inside unitxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
     this.liveTime -= timeFromLastUpadate;
     this.checkForExpired();
   }
 
   checkForExpired() {
-    console.log('livetime:'+this.liveTime);
+    console.log("livetime:" + this.liveTime);
     if (this.liveTime <= 0) {
       this.isReadyToRemove = true;
     }
@@ -441,199 +680,5 @@ class UnitOfAttack {
     ellipseMode(CENTER); //switch centre to be centre rather than left, top
     circle(0, 0, this.radius);
     pop();
-  }
-}
-
-class  DroppingBombs extends Weapon {
-  constructor(
-    world,
-    x,
-    y,
-    radius,
-    label,
-    amountOfBalls,
-    liveTimeOfUnitOfAttack
-  ) {
-    super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
-  }
-  show() {
-    super.show();
-  }
-
-  getActivationTime() {
-    return 30;
-  }
-  remove() {
-    super.rename();
-  }
-  createUnitsOfAttack() {
-    if (this.body.velocity.y < 0) {
-      return;
-    }
-    super.createUnitsOfAttack()
-    let velocityX = 0;
-    let velocityY = this.body.velocity.y * 30;
-    let velocity = { x: velocityX, y: velocityY };
-    let label = "unitOfWeapon";
-    let newUnit = new UnitOfAttack(
-      this.world,
-      this.body.position.x,
-      this.body.position.y,
-      20,
-      {
-        restitution: 0.09,
-        friction: 0.79,
-        density: 0.89,
-        frictionAir: 0.005,
-        label: label,
-        velocity: velocity,
-        collisionFilter: {
-          //used with mouse constraints to allow/not allow iteration
-          category: notinteractable,
-        },
-      },
-      this.liveTimeOfUnitOfAttack
-    );
-    if (this.body.velocity.y > 0) {
-      this.unitsOfAttack.push(newUnit);
-      if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
-        this.isUnitsOfAttackCreated=true;
-        this.isActivated=false;
-
-       
-      }
-    }
-     
-  }
-}
-
-class MachineGun extends Weapon {
-  constructor(
-    world,
-    x,
-    y,
-    radius,
-    label,
-    amountOfBalls,
-    liveTimeOfUnitOfAttack
-  ) {
-    super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
-  }
-  show() {
-    super.show();
-  }
-  remove() {
-    super.rename();
-  }
-
-  getActivationTime() {
-    return 0;
-  }
-  createUnitsOfAttack() {
-    super.createUnitsOfAttack()
-    //velocity is taken from the body of the weapon  player can see at the begining.
-    // once the weapon is shot its velocity is copied to   unitsOfWeapon
-    let velocityX = this.body.velocity.x;
-    let velocityY = this.body.velocity.y;
-    let velocity = { x: velocityX, y: velocityY };
-    let label = "unitOfWeapon";
-
-    let newUnit = new UnitOfAttack(
-      this.world,
-      this.body.position.x,
-      this.body.position.y,
-      10,
-
-      {
-        restitution: 0.09,
-        friction: 0.79,
-        density: 0.89,
-        frictionAir: 0.005,
-        label: label,
-        velocity: velocity,
-        collisionFilter: {
-          //used with mouse constraints to allow/not allow iteration
-          category: notinteractable,
-        },
-      },
-      this.liveTimeOfUnitOfAttack
-    );
-    newUnit.applyVelocity();
-    this.unitsOfAttack.push(newUnit);
-    if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
-    
-      this.isUnitsOfAttackCreated=true;
-      this.isActivated = false;
-    }
-     
-  }
-}
-
-class Grenade extends Weapon {
-  constructor(
-    world,
-    x,
-    y,
-    radius,
-    label,
-    amountOfBalls,
-    liveTimeOfUnitOfAttack
-  ) {
-    super(world, x, y, radius, label, amountOfBalls, liveTimeOfUnitOfAttack);
-   
-  }
-  show() {
-    super.show();
-  }
-  remove() {
-    super.rename();
-  }
-
-  // applyForce(){
-  //   this.unitsOfAttack.forEach((element)=>element.applyForce());
-
-  // }
-
-  //this is in miliseconds
-  getActivationTime() {
-    return 550;
-  }
-  createUnitsOfAttack() {
-    super.createUnitsOfAttack()
-    //velocity is taken from the body of the weapon  player can see at the begining.
-    // once the weapon is shot its velocity is copied to   unitsOfWeapon
-    let velocityX = this.body.velocity.x;
-    let velocityY = this.body.velocity.y;
-    let velocity = { x: velocityX, y: velocityY };
-    let label = "unitOfWeapon";
-
-    let newUnit = new UnitOfAttack(
-      this.world,
-      this.body.position.x,
-      this.body.position.y,
-      10,
-
-      {
-        restitution: 0.2,
-        friction: 0.49,
-        density: 0.79,
-        frictionAir: 0.005,
-        label: label,
-        velocity: velocity,
-        collisionFilter: {
-          //used with mouse constraints to allow/not allow iteration
-          category: notinteractable,
-        },
-      },
-      this.liveTimeOfUnitOfAttack
-    );
-    this.unitsOfAttack.push(newUnit);
-    if (this.unitsOfAttack.length == this.amountOfUnitsOfAttack) {
-      
-
-      this.isUnitsOfAttackCreated=true;
-      this.isActivated = false;
-    }
-    
   }
 }

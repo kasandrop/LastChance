@@ -11,6 +11,7 @@ const FUZZBALL_Y = 590; //declare a starting point for the fuzzball
 const FUZZBALL_RADIUS = 40; //declare a radius for the fuzzball
 const BACKGROUND_IMAGE =
   "https://adaresource.s3.eu-west-2.amazonaws.com/assets/fuzzballslam/SlamBackground920x690.png";
+  const SHELF_WIDTH=333;
 //in miliseconds. From activation how long uniOFAttack lasts .
 //TODO if there is time make it random so 10 sec is max. random number
 const UNIT_OF_ATTACK_LIFETIME_MAXIMUM = 10000;
@@ -22,7 +23,7 @@ var playerScore = 0;
 // https://brm.io/matter-js/docs/classes/MouseConstraint.html#properties
 var notinteractable = 0x0001;
 var interactable = 0x0002;
-var livesLeft = 0;
+var livesLeft = -1;
 var crates = []; //create an empty array that will be used to hold all the crates instances
 var ground;
 var launcher;
@@ -37,7 +38,6 @@ var game;
 function start() {
   console.log("start pressed");
   livesLeft = 3;
-  // menu.style = "display:none;";
   level1();
 }
 
@@ -45,37 +45,22 @@ function preload() {
   console.log("function preload()");
   backgroundImage = loadImage(BACKGROUND_IMAGE);
 }
+ function updateLives(text=""){
+   if(text!=""){
+    document.getElementById("lives").innerHTML=text;
+    return;
+   }
+  
+   if(livesLeft<0){
+      return;
+   }
+  document.getElementById("lives").innerHTML="Lives:"+livesLeft;
+ }
 
-// function gameProgress() {
-//   //console.log('function gameProgress()');
-//   if (game.isTheTurnFinished()) {
-//     console.log(game.isTheTurnFinished());
-//    // menu.style = "display:block;";
-//   } else {
-//     console.log(game.isTheTurnFinished());
-//   }
-// }
-
-function score(points, weapon = -1,gameFinished = "" ) {
-  let effectspeed = 60;
-  let animatespeed = 500;
-
-  $("#scoreboard").finish();
-  document.getElementById("points").innerHTML = "+" + points;
-  $("#scoreboard").removeAttr("style"); //remove any applied styles
-  $("#scoreboard").fadeIn(effectspeed, function () {
-    $("#scoreboard").animate(
-      {
-        top: "+=100px",
-        opacity: 0,
-      },
-      animatespeed
-    );
-  });
-
+function score(points,weapon="" ) {
   playerScore += points;
-  document.getElementById("status").innerHTML =
-    displayWeapon(weapon) + "Score: " + playerScore + " " + gameFinished;
+  document.getElementById("points").innerHTML =
+    displayWeapon(weapon) + "Score: " + playerScore + " " ;
 }
 
 function displayWeapon(weapon) {
@@ -91,7 +76,7 @@ function displayWeapon(weapon) {
       toDisplay = "Flying Bombs";
       break;
     default:
-      toDisplay = "";
+      toDisplay = "Press s To Start";
   }
 
   return toDisplay;
@@ -130,21 +115,26 @@ function setup() {
   ground = new Ground(VP_WIDTH / 2, VP_HEIGHT + 20, VP_WIDTH, 40, "ground"); //create a ground object using the ground class
 }
 
+function  remove(){
+   creates.remove();
+  game.remove();
+  game=null;
+  launcher.remove();
+   crates.remove();
+  for (let i = 0; i < MAX_SPECIALS; i++) {
+    specials[i].remove();
+  }
+
+ 
+}
+
 function level1(replay = false) {
   console.log("function level1()");
-  if (replay == true) {
+  if (livesLeft<0) {
+    updateLives("Press s  to start");
+    remove();
     //if this is a 'reply' we need to remove all the objects before recrating them
-    ground.remove();
-    //	leftwall.remove();
-    launcher.remove();
-    game.remove();
-    for (let i = 0; i < MAX_SPECIALS; i++) {
-      specials[i].remove();
-    }
-
-    for (let i = 0; i < MAX_CRATES; i++) {
-      crates[i].remove();
-    }
+   
   }
 
   //	leftwall = new c_ground(0, VP_HEIGHT/2, 20, VP_HEIGHT, "leftwall"); //create a left wall object using the ground class
@@ -178,40 +168,23 @@ function level1(replay = false) {
   );
   game = new Game(grenade, machineGun, droppingBombs);
   launcher = new Launcher(FUZZBALL_X, FUZZBALL_Y - 100, game.getBody());
-
-  for (let i = 0; i < MAX_SPECIALS; i++) {
-    //specials[i] = new c_special(get_random(300, 640), get_random(VP_HEIGHT-600, VP_HEIGHT-120), 70, 20, "special");
-  }
-
   //loop through each of the crates indexes
-  for (let i = 0; i < MAX_CRATES; i++) {
-    //loop for each instance of a crates
-    let top = -CRATE_HEIGHT * MAX_CRATES - 100;
-    let offset = i * CRATE_HEIGHT * 3;
-    crates[i] = new Crate(
-      700,
-      top + offset,
-      CRATE_WIDTH,
-      CRATE_HEIGHT,
-      "crate"
-    );
-  }
-
+  crates=new Crates(MAX_CRATES);
+  
+ 
+  updateLives();
+  //livesToDisplay(livesLeft);
   //create a launcher object using the fuzzball body
 }
 
 function collisionEnds(event) {
   event.pairs.forEach((collide) => {
-    //event.pairs[0].bodyA.label
-    //	console.log("collision:"+collide.bodyB.label+" and "+collide.bodyA.label );
-
     if (
       collide.bodyB.label == "unitOfWeapon" &&
       collide.bodyA.label == "crate"
     ) {
       console.log("interesting collision");
       Matter.Body.set(collide.bodyA, { isAttacked: false });
-
       score(1,game.getLuckyNumber());
     }
   });
@@ -219,27 +192,31 @@ function collisionEnds(event) {
 
 function collisionActive(event) {
   event.pairs.forEach((collide) => {
-    //event.pairs[0].bodyA.label
-    //	console.log("collision:"+collide.bodyB.label+" and "+collide.bodyA.label );
-
-    if (
+     if (
       collide.bodyB.label == "unitOfWeapon" &&
       collide.bodyA.label == "crate"
     ) {
       console.log("interesting collision");
       Matter.Body.set(collide.bodyA, { isAttacked: true });
-
       score(1,game.getLuckyNumber());
     }
   });
 }
 //deltatime build in p5 system  variable, time from the last run of the timeframe. in miliseconds
 function update(deltaTime) {
-  console.log("game.isTheTurnFinished:"+game.isTheTurnFinished());
-  console.log("random"+game. getRandomInt(0, 3));
+  if(game.isTheTurnFinished()){
+
+ crates.setStatic();
+
+ livesLeft--;
+   level1();
+  }
+ 
   game.update(deltaTime);
   // gameProgress();
 }
+
+ 
 
 function paint_background() {
   //access the game object for the world, use this as a background image for the game
@@ -249,27 +226,20 @@ function paint_background() {
 
 function paint_assets() {
   update(deltaTime);
-  for (let i = 0; i < crates.length; i++) {
-    //loop through the crates array and show each
-    crates[i].show();
+  if(crates!=null){
+    crates.show();
   }
+ 
   launcher.show();
   game.show(); //show the fuzzball
 }
 
 function draw() {
-  // console.log('function draw()');
-  //console.log("deltaTime"+deltaTime);
-  //this p5 defined function runs every refresh cycle
-  //special.rotate();
-
-  paint_background(); //paint the default background
+ paint_background(); //paint the default background
   Matter.Engine.update(engine); //run the matter engine update
   if (game != null) {
     paint_assets();
   }
-
-  // }
 
   //paint the assets
 
@@ -290,9 +260,14 @@ function draw() {
 }
 
 function mouseReleased() {
-  if (livesLeft == 0) return;
+ 
   console.log("mouseRealesed");
-
+  if (livesLeft<0) {
+    return;
+  }
+  if(launcher.launch.bodyB==null ){
+     return;
+  }
   setTimeout(() => {
     console.log(" setTimeout");
     launcher.release();
@@ -315,12 +290,15 @@ function keyPressed() {
 
   if (keyCode === 32) {
     console.log("space key press");
-    launcher.release(); //execute the release method
+   //execute the release method
   }
 
   if (keyCode === 83) {
+    if(livesLeft==-1){
+      start();
+    }
     //console.log("Start pressed");
-    start();
+   
     // fuzzball.remove();
     // fuzzball = new c_fuzzball(FUZZBALL_X, FUZZBALL_Y, FIZZBALL_D, "fuzzball");
     // launcher.attach(fuzzball.body);
